@@ -3,18 +3,20 @@ import uuid
 import locust
 import random
 
+import poppy_all_apis_config as CONFIG
+
 
 class PoppyTasks(locust.TaskSet):
 
-    tenant_id = "862456"
-    token = "xxxxx"
+    tenant_id = CONFIG.tenant_id
+
     headers = {"Content-Type": "application/json",
-                                  "X-Project-ID": tenant_id,
+                                  "X-Project-ID": CONFIG.tenant_id,
                                   "Accept": "application/json",
-                                  "X-Auth-Token": token}
+                                  "X-Auth-Token": CONFIG.token}
     service_ids = []
 
-    @locust.task(2)
+    @locust.task(CONFIG.create_service_weight)
     def post_service(self):
 
         service_name = str(uuid.uuid1())
@@ -42,7 +44,7 @@ class PoppyTasks(locust.TaskSet):
         print "Service id:", service_id
         self.service_ids.append(service_id)
 
-    @locust.task(2)
+    @locust.task(CONFIG.update_service_weight)
     def update_service(self):
         patch_data_update = [{
             "op": "add",
@@ -62,7 +64,7 @@ class PoppyTasks(locust.TaskSet):
         print "Response content is:", update_response.content
         print "Response xtra content is: ", update_response.headers['location']
 
-    @locust.task(1)
+    @locust.task(CONFIG.delete_service_weight)
     def delete_service(self):
         service_id = self.service_ids.pop()
         delete_response = self.client.delete('/'+self.tenant_id+'/services/'
@@ -72,7 +74,7 @@ class PoppyTasks(locust.TaskSet):
         print "Response content is:", delete_response.content
         print "Response xtra content is: ", delete_response.headers['location']
 
-    @locust.task(10)
+    @locust.task(CONFIG.delete_asset_weight)
     def delete_asset(self):
         service_id = self.service_ids.pop()
         self.client.delete('/'+self.tenant_id+'/services/'+service_id
@@ -81,7 +83,7 @@ class PoppyTasks(locust.TaskSet):
                            params={'url': self._pick_asset()})
         self.service_ids.put(service_id)
 
-    @locust.task(10)
+    @locust.task(CONFIG.delete_all_assets_weight)
     def delete_all_assets(self):
         service_id = self.service_ids.pop()
         self.client.delete('/'+self.tenant_id+'/services/'+service_id
@@ -90,29 +92,28 @@ class PoppyTasks(locust.TaskSet):
                            params={'all': True})
         self.service_ids.put(service_id)
 
-    @locust.task(20)
+    @locust.task(CONFIG.list_services_weight)
     def list_services(self):
         self.client.get('/'+self.tenant_id+'/services', headers=self.headers)
 
-    @locust.task(10)
+    @locust.task(CONFIG.get_service_weight)
     def get_service(self):
         service_id = self.service_ids.pop()
         self.client.get('/'+self.tenant_id+'/services/'+service_id,
                         headers=self.headers)
         self.service_ids.put(service_id)
 
-    @locust.task(4)
+    @locust.task(CONFIG.list_flavors_weight)
     def list_flavors(self):
         self.client.get('/'+self.tenant_id+'/flavors', headers=self.headers)
 
-    @locust.task(4)
+    @locust.task(CONFIG.get_flavors_weight)
     def get_flavors(self):
         self.client.get('/'+self.tenant_id+'/flavors/'+self._pick_flavor(),
                         headers=self.headers)
 
     def _pick_flavor(self):
-    # what if new flavors? do we care?
-        return random.choice(('cdn', 'երանգ'))
+        return random.choice(CONFIG.flavors)
 
     def _pick_asset(self):
     # TODO: idk my bff jill
@@ -121,7 +122,7 @@ class PoppyTasks(locust.TaskSet):
 
 class PoppyLocust(locust.HttpLocust):
 
-    host = "https://preview.cdn.api.rackspacecloud.com/v1.0"
+    host = CONFIG.host
     task_set = PoppyTasks
-    min_wait = 1000
-    max_wait = 1000
+    min_wait = CONFIG.min_wait
+    max_wait = CONFIG.max_wait
