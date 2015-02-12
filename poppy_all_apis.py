@@ -7,7 +7,7 @@ import random
 class PoppyTasks(locust.TaskSet):
 
     tenant_id = "862456"
-    token = "fa0c1b8e1baf47ab9d97197d2e23ce03"
+    token = "xxxxx"
     headers = {"Content-Type": "application/json",
                                   "X-Project-ID": tenant_id,
                                   "Accept": "application/json",
