@@ -58,11 +58,12 @@ class PoppyTasks(locust.TaskSet):
             print "WARNING: service_ids list is empty"
             return
 
+        domain = "new_domain" + str(uuid.uuid1()) + ".com"
         patch_data_update = [{
             "op": "add",
             "path": "/domains/-",
             "value": {
-                "domain": "newDomain.com",
+                "domain": domain,
                 "protocol": "http"
             }
         }]
