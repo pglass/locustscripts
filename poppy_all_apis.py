@@ -19,8 +19,9 @@ class PoppyTasks(locust.TaskSet):
     def __init__(self, *args, **kwargs):
         super(PoppyTasks, self).__init__(*args, **kwargs)
         # create a service so everything doesn't fail initially
-        print "Creating initial service"
-        self.post_service()
+        print "Creating initial services"
+        for _ in xrange(3):
+            self.post_service()
 
     @locust.task(CONFIG.create_service_weight)
     def post_service(self):
@@ -52,8 +53,8 @@ class PoppyTasks(locust.TaskSet):
             print "Service id:", service_id
             self.service_ids.append(service_id)
 
-    @locust.task(CONFIG.update_service_weight)
-    def update_service(self):
+    @locust.task(CONFIG.update_service_domain_weight)
+    def update_service_domain(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
             return
@@ -73,7 +74,31 @@ class PoppyTasks(locust.TaskSet):
                                             data=json.dumps(patch_data_update),
                                             headers=self.headers,
                                             name="/{tenant}/services/{id}")
-        print "Response for update is:", update_response.status_code
+        print "Response for update service rule:", update_response.status_code
+        print "Response content is:", update_response.content
+
+    @locust.task(CONFIG.update_service_rule_weight)
+    def update_service_rule(self):
+        if not self.service_ids:
+            print "WARNING: service_ids list is empty"
+            return
+
+        patch_data = [{
+            "op": "replace",
+            "path": "/caching/0",
+            "value": {
+                "name": "home",
+                "ttl": random.randint(500, 2500),
+            }
+        }]
+
+        service_id = random.choice(self.service_ids)
+        update_response = self.client.patch('/'+self.tenant_id+'/services/'
+                                            +service_id,
+                                            data=json.dumps(patch_data),
+                                            headers=self.headers,
+                                            name="/{tenant}/services/{id}")
+        print "Response for update service rule:", update_response.status_code
         print "Response content is:", update_response.content
 
     @locust.task(CONFIG.delete_service_weight)
