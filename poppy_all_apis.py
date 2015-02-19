@@ -10,10 +10,12 @@ class PoppyTasks(locust.TaskSet):
 
     tenant_id = CONFIG.tenant_id
 
-    headers = {"Content-Type": "application/json",
-                                  "X-Project-ID": CONFIG.tenant_id,
-                                  "Accept": "application/json",
-                                  "X-Auth-Token": CONFIG.token}
+    headers = {
+        "Content-Type": "application/json",
+        "X-Project-ID": CONFIG.tenant_id,
+        "Accept": "application/json",
+        "X-Auth-Token": CONFIG.token
+    }
     service_ids = []
 
     def __init__(self, *args, **kwargs):
@@ -74,7 +76,7 @@ class PoppyTasks(locust.TaskSet):
                                             data=json.dumps(patch_data_update),
                                             headers=self.headers,
                                             name="/{tenant}/services/{id}")
-        print "Response for update service rule:", update_response.status_code
+        print "Response for patch service domain:", update_response.status_code
         print "Response content is:", update_response.content
 
     @locust.task(CONFIG.update_service_rule_weight)
@@ -98,7 +100,35 @@ class PoppyTasks(locust.TaskSet):
                                             data=json.dumps(patch_data),
                                             headers=self.headers,
                                             name="/{tenant}/services/{id}")
-        print "Response for update service rule:", update_response.status_code
+        print "Response for patch service rule:", update_response.status_code
+        print "Response content is:", update_response.content
+
+    @locust.task(CONFIG.update_service_origin_weight)
+    def update_service_origin(self):
+        if not self.service_ids:
+            print "WARNING: service_ids list is empty"
+            return
+
+        random_origin = "mywebsite%s.com." % random.randint(1000000000,
+                                                            9999999999)
+        patch_data = [{
+            "op": "replace",
+            "path": "/origins/0",
+            "value": {
+                "origin": random_origin,
+                "port": 80,
+                "rules": [],
+                "ssl": False
+            }
+        }]
+
+        service_id = random.choice(self.service_ids)
+        update_response = self.client.patch('/'+self.tenant_id+'/services/'
+                                            +service_id,
+                                            data=json.dumps(patch_data),
+                                            headers=self.headers,
+                                            name="/{tenant}/services/{id}")
+        print "Response for patch service origin:", update_response.status_code
         print "Response content is:", update_response.content
 
     @locust.task(CONFIG.delete_service_weight)
