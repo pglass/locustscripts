@@ -3,7 +3,14 @@ import uuid
 import locust
 import random
 
-import poppy_all_apis_config as CONFIG
+from poppy_all_apis_config import cfg
+
+# locust will error on unknown cli args, so you can really only use a config file
+# TODO: where to specify the config file??
+cfg.CONF(args=[], default_config_files=['poppy-perf.config'])
+
+CONFIG = cfg.CONF['test:perf']
+WEIGHTS = cfg.CONF['test:perf:weights']
 
 
 class PoppyTasks(locust.TaskSet):
@@ -21,11 +28,9 @@ class PoppyTasks(locust.TaskSet):
     def __init__(self, *args, **kwargs):
         super(PoppyTasks, self).__init__(*args, **kwargs)
         # create a service so everything doesn't fail initially
-        print "Creating initial services"
-        for _ in xrange(3):
-            self.post_service()
+        self.post_service()
 
-    @locust.task(CONFIG.create_service_weight)
+    @locust.task(WEIGHTS.create_service)
     def post_service(self):
 
         service_name = str(uuid.uuid1())
@@ -55,7 +60,7 @@ class PoppyTasks(locust.TaskSet):
             print "Service id:", service_id
             self.service_ids.append(service_id)
 
-    @locust.task(CONFIG.update_service_domain_weight)
+    @locust.task(WEIGHTS.update_service_domain)
     def update_service_domain(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -79,7 +84,7 @@ class PoppyTasks(locust.TaskSet):
         print "Response for patch service domain:", update_response.status_code
         print "Response content is:", update_response.content
 
-    @locust.task(CONFIG.update_service_rule_weight)
+    @locust.task(WEIGHTS.update_service_rule)
     def update_service_rule(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -103,7 +108,7 @@ class PoppyTasks(locust.TaskSet):
         print "Response for patch service rule:", update_response.status_code
         print "Response content is:", update_response.content
 
-    @locust.task(CONFIG.update_service_origin_weight)
+    @locust.task(WEIGHTS.update_service_origin)
     def update_service_origin(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -131,10 +136,10 @@ class PoppyTasks(locust.TaskSet):
         print "Response for patch service origin:", update_response.status_code
         print "Response content is:", update_response.content
 
-    @locust.task(CONFIG.delete_service_weight)
+    @locust.task(WEIGHTS.delete_service)
     def delete_service(self):
-        if not self.service_ids:
-            print "WARNING: service_ids list is empty"
+        if len(self.service_ids) < 2:
+            print "WARNING: refuse to delete last service in service_ids"
             return
 
         service_id = self.service_ids.pop()
@@ -145,7 +150,7 @@ class PoppyTasks(locust.TaskSet):
         print "Response for delete is:", delete_response.status_code
         print "Response content is:", delete_response.content
 
-    @locust.task(CONFIG.delete_asset_weight)
+    @locust.task(WEIGHTS.delete_asset)
     def delete_asset(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -158,7 +163,7 @@ class PoppyTasks(locust.TaskSet):
                            params={'url': self._pick_asset()},
                            name="/{tenant}/services/{id}/assets")
 
-    @locust.task(CONFIG.delete_all_assets_weight)
+    @locust.task(WEIGHTS.delete_all_assets)
     def delete_all_assets(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -170,12 +175,12 @@ class PoppyTasks(locust.TaskSet):
                            params={'all': True},
                            name="/{tenant}/services/{id}/assets")
 
-    @locust.task(CONFIG.list_services_weight)
+    @locust.task(WEIGHTS.list_services)
     def list_services(self):
         self.client.get('/'+self.tenant_id+'/services', headers=self.headers,
                         name="/{tenant}/services")
 
-    @locust.task(CONFIG.get_service_weight)
+    @locust.task(WEIGHTS.get_service)
     def get_service(self):
         if not self.service_ids:
             print "WARNING: service_ids list is empty"
@@ -185,12 +190,12 @@ class PoppyTasks(locust.TaskSet):
         self.client.get('/'+self.tenant_id+'/services/'+service_id,
                         headers=self.headers, name="/{tenant}/services/{id}")
 
-    @locust.task(CONFIG.list_flavors_weight)
+    @locust.task(WEIGHTS.list_flavors)
     def list_flavors(self):
         self.client.get('/'+self.tenant_id+'/flavors', headers=self.headers,
                         name="/{tenant}/flavors")
 
-    @locust.task(CONFIG.get_flavors_weight)
+    @locust.task(WEIGHTS.get_flavors)
     def get_flavors(self):
         self.client.get('/'+self.tenant_id+'/flavors/'+self._pick_flavor(),
                         headers=self.headers,
